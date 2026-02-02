@@ -597,7 +597,7 @@ def f1_from_dot_bracket(pred_dot_bracket, true_dot_bracket, eps=1e-11):
     
     Example:
         >>> pred = "(((...)))"
-        >>> true = "(((.....)"
+        >>> true = "((.....)))"
         >>> precision, recall, f1 = f1_from_dot_bracket(pred, true)
         >>> print(f"F1 Score: {f1:.4f}")
     
@@ -617,9 +617,9 @@ def f1_from_dot_bracket(pred_dot_bracket, true_dot_bracket, eps=1e-11):
     return evaluate_exact_new(pred_contact, true_contact, eps)
 
 
-def test_dot_bracket_f1():
+def demo_dot_bracket_f1():
     """
-    Test function to demonstrate F1 calculation from dot-bracket notation.
+    Demo function to demonstrate F1 calculation from dot-bracket notation.
     """
     # Example 1: Perfect match
     pred1 = "(((...)))"
