@@ -547,6 +547,108 @@ def seed_torch(seed=0):
     torch.backends.cudnn.deterministic = True
 
 
+def dot_bracket_to_contact(dot_bracket):
+    """
+    Convert dot-bracket notation to contact matrix.
+    
+    Args:
+        dot_bracket (str): RNA secondary structure in dot-bracket notation
+                          e.g., "(((...)))..." where:
+                          '.' = unpaired base
+                          '(' = left base of a pair
+                          ')' = right base of a pair
+    
+    Returns:
+        np.ndarray: Contact matrix of shape [seq_len, seq_len] with 1s at paired positions
+    
+    Example:
+        >>> dot_bracket = "(((...)))"
+        >>> contact = dot_bracket_to_contact(dot_bracket)
+        >>> # contact[0,8] = contact[8,0] = 1 (position 0 pairs with 8)
+        >>> # contact[1,7] = contact[7,1] = 1 (position 1 pairs with 7)
+        >>> # contact[2,6] = contact[6,2] = 1 (position 2 pairs with 6)
+    """
+    seq_len = len(dot_bracket)
+    contact = np.zeros([seq_len, seq_len])
+    
+    # Use ct2struct to parse dot-bracket and get pair indices
+    struct = ct2struct(dot_bracket)
+    
+    # Fill in the contact matrix (symmetric)
+    for pair in struct:
+        i, j = pair[0], pair[1]
+        contact[i, j] = 1
+        contact[j, i] = 1  # Make symmetric
+    
+    return contact
+
+
+def f1_from_dot_bracket(pred_dot_bracket, true_dot_bracket, eps=1e-11):
+    """
+    Calculate F1 score directly from dot-bracket notation.
+    
+    Args:
+        pred_dot_bracket (str): Predicted RNA secondary structure in dot-bracket notation
+        true_dot_bracket (str): True RNA secondary structure in dot-bracket notation
+        eps (float): Small value to avoid division by zero
+    
+    Returns:
+        tuple: (precision, recall, f1_score)
+    
+    Example:
+        >>> pred = "(((...)))"
+        >>> true = "(((.....)"
+        >>> precision, recall, f1 = f1_from_dot_bracket(pred, true)
+        >>> print(f"F1 Score: {f1:.4f}")
+    
+    Note:
+        - Both structures must have the same length
+        - Currently does not support pseudoknots (uses standard '(' ')' notation)
+    """
+    if len(pred_dot_bracket) != len(true_dot_bracket):
+        raise ValueError(f"Predicted and true structures must have same length. "
+                        f"Got {len(pred_dot_bracket)} and {len(true_dot_bracket)}")
+    
+    # Convert dot-bracket to contact matrices
+    pred_contact = dot_bracket_to_contact(pred_dot_bracket)
+    true_contact = dot_bracket_to_contact(true_dot_bracket)
+    
+    # Use existing evaluate_exact_new function
+    return evaluate_exact_new(pred_contact, true_contact, eps)
+
+
+def test_dot_bracket_f1():
+    """
+    Test function to demonstrate F1 calculation from dot-bracket notation.
+    """
+    # Example 1: Perfect match
+    pred1 = "(((...)))"
+    true1 = "(((...)))"
+    p1, r1, f1_1 = f1_from_dot_bracket(pred1, true1)
+    print(f"Example 1 (Perfect match):")
+    print(f"  Predicted: {pred1}")
+    print(f"  True:      {true1}")
+    print(f"  Precision: {p1:.4f}, Recall: {r1:.4f}, F1: {f1_1:.4f}")
+    
+    # Example 2: Partial match
+    pred2 = "(((...)))"
+    true2 = "((.....))"
+    p2, r2, f1_2 = f1_from_dot_bracket(pred2, true2)
+    print(f"\nExample 2 (Partial match):")
+    print(f"  Predicted: {pred2}")
+    print(f"  True:      {true2}")
+    print(f"  Precision: {p2:.4f}, Recall: {r2:.4f}, F1: {f1_2:.4f}")
+    
+    # Example 3: No pairs in prediction
+    pred3 = "........."
+    true3 = "(((...)))"
+    p3, r3, f1_3 = f1_from_dot_bracket(pred3, true3)
+    print(f"\nExample 3 (No predicted pairs):")
+    print(f"  Predicted: {pred3}")
+    print(f"  True:      {true3}")
+    print(f"  Precision: {p3:.4f}, Recall: {r3:.4f}, F1: {f1_3:.4f}")
+    
+    return True
 
 
 
